@@ -28,6 +28,8 @@
 #include <cstdlib>
 #include <curl/curl.h>
 
+#include <ulib/chainhash_tpl.h>
+
 #include "smcurl.h"
 
 #define CURL_INIT()                                                         \
@@ -56,14 +58,13 @@ static cell_t smcurl_easy_strerror(IPluginContext *pCtx, const cell_t *params);
 static cell_t smcurl_easy_unescape(IPluginContext *pCtx, const cell_t *params);
 static cell_t smcurl_formadd(IPluginContext *pCtx, const cell_t *params);
 static cell_t smcurl_formfree(IPluginContext *pCtx, const cell_t *params);
-static cell_t smcurl_free(IPluginContext *pCtx, const cell_t *params);
 static cell_t smcurl_getdate(IPluginContext *pCtx, const cell_t *params);
 static cell_t smcurl_slist_append(IPluginContext *pCtx, const cell_t *params);
 static cell_t smcurl_slist_free_all(IPluginContext *pCtx, const cell_t *params);
 static cell_t smcurl_version(IPluginContext *pCtx, const cell_t *params);
 static cell_t smcurl_version_info(IPluginContext *pCtx, const cell_t *params);
 
-sp_nativeinfo_t smcurl_natives[] =
+const sp_nativeinfo_t smcurl_natives[] =
 {
     {"curl_easy_escape", smcurl_easy_escape},
     {"curl_easy_init", smcurl_easy_init},

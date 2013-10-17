@@ -5,6 +5,7 @@
 ###########################################
 
 SMSDK = ../sourcemod-1.5
+ULIB = ../ulib
 
 VERSION_HEADER = smcurl_version.h
 
@@ -14,7 +15,7 @@ VERSION_HEADER = smcurl_version.h
 
 PROJECT = smcurl
 
-OBJECTS = sdk/smsdk_ext.cpp smcurl.cpp natives.cpp
+OBJECTS = sdk/smsdk_ext.cpp smcurl.cpp natives.cpp curlopt.cpp
 
 ##############################################
 ### CONFIGURE ANY OTHER FLAGS/OPTIONS HERE ###
@@ -28,7 +29,7 @@ CC = clang
 CXX = clang
 CXX_OSX = clang
 
-INCLUDE += -I. -I.. -Isdk -I$(SMSDK)/public -I$(SMSDK)/public/sourcepawn
+INCLUDE += -I. -I.. -Isdk -I$(SMSDK)/public -I$(SMSDK)/public/sourcepawn -I$(ULIB)/include
 
 CPPFLAGS += -DPOSIX -Dstricmp=strcasecmp -D_stricmp=strcasecmp -D_strnicmp=strncasecmp -Dstrnicmp=strncasecmp \
 	-D_snprintf=snprintf -D_vsnprintf=vsnprintf -D_alloca=alloca -Dstrcmpi=strcasecmp -DCOMPILER_GCC \
@@ -102,7 +103,7 @@ ifeq "$(shell expr $(OS) \= Linux \& $(IS_CLANG) \= 0)" "1"
 	LDFLAGS += -static-libgcc
 endif
 
-LDFLAGS += -lm -ldl $(shell curl-config --static-libs)
+LDFLAGS += -lm -ldl $(shell curl-config --static-libs) $(ULIB)/lib/libulib.a
 
 OBJ_BIN := $(OBJECTS:%.cpp=$(BIN_DIR)/%.o)
 
@@ -119,8 +120,11 @@ all: check extension
 check: gitversion
 	mkdir -p $(BIN_DIR)/sdk
 
-extension: check $(OBJ_BIN)
+extension: ulib $(OBJ_BIN)
 	$(CXX) $(INCLUDE) $(OBJ_BIN) $(LDFLAGS) -o $(BIN_DIR)/$(BINARY)
+
+ulib:
+	cd $(ULIB) && $(MAKE)
 
 debug:
 	$(MAKE) -f $(MAKEFILE_NAME) all DEBUG=true
