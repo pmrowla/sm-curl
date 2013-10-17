@@ -14,7 +14,7 @@ VERSION_HEADER = smcurl_version.h
 
 PROJECT = smcurl
 
-OBJECTS = sdk/smsdk_ext.cpp smcurl.cpp
+OBJECTS = sdk/smsdk_ext.cpp smcurl.cpp natives.cpp
 
 ##############################################
 ### CONFIGURE ANY OTHER FLAGS/OPTIONS HERE ###
@@ -63,13 +63,12 @@ ifeq "$(OS)" "Darwin"
 	CPPFLAGS += -DOSX -D_OSX
 	LDFLAGS += -dynamiclib -lstdc++ -mmacosx-version-min=10.5 -arch i386
 	CFLAGS += -arch i386
-	CURL_LIB = ../lib/osx
 else
 	LIB_EXT = so
 	CPPFLAGS += -D_LINUX
 	LDFLAGS += -shared -m32
 	CFLAGS += -m32
-	CURL_LIB = ../lib/linux
+	CURL_LIB = /usr/lib/i386-linux-gnu
 endif
 
 IS_CLANG := $(shell $(CXX) --version | head -1 | grep clang > /dev/null && echo "1" || echo "0")
@@ -103,7 +102,8 @@ ifeq "$(shell expr $(OS) \= Linux \& $(IS_CLANG) \= 0)" "1"
 	LDFLAGS += -static-libgcc
 endif
 
-LDFLAGS += -lm -ldl -lcurl
+LDFLAGS += -lm -ldl
+LDFLAGS += $(CURL_LIB)/libcurl.a -Wl,-Bsymbolic-functions -Wl,-z,relro -lidn -lgcrypt -llber $(CURL_LIB)/libldap.a $(CURL_LIB)/librt.a -lgssapi_krb5 $(CURL_LIB)/libz.a $(CURL_LIB)/libgnutls.a -lgcrypt $(CURL_LIB)/librtmp.a
 
 OBJ_BIN := $(OBJECTS:%.cpp=$(BIN_DIR)/%.o)
 

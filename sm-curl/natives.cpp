@@ -33,9 +33,11 @@
 #define CURL_INIT()                                                         \
     Handle_t handle = static_cast<Handle_t>(params[1]);                     \
     HandleError err;                                                        \
-    HandleSecurity sec(pContext->GetIdentity(), myself->GetIdentity);       \
+    HandleSecurity sec;                                                     \
+    sec.pOwner = pCtx->GetIdentity();                                       \
+    sec.pIdentity = myself->GetIdentity();                                  \
     CURL *curl;                                                             \
-    err = handlesys->ReadHandle(handle, g_CurlType, &sec, (void **)&curl);  \
+    err = handlesys->ReadHandle(handle, g_CurlHandleType, &sec, (void **)&curl);    \
     if (HandleError_None != err)                                            \
         return pCtx->ThrowNativeError("Invalid CURL * handle %x (error %d)", handle, err);
 
@@ -116,6 +118,8 @@ static cell_t smcurl_easy_cleanup(IPluginContext *pCtx, const cell_t *params)
     CURL_INIT();
 
     curl_easy_cleanup(curl);
+
+    return 1;
 }
 
 static cell_t smcurl_easy_duphandle(IPluginContext *pCtx, const cell_t *params)
@@ -126,9 +130,9 @@ static cell_t smcurl_easy_duphandle(IPluginContext *pCtx, const cell_t *params)
     if (NULL == newcurl)
         return BAD_HANDLE;
 
-    Handle_t handle = handlesys->CreateHandle(g_CurlHandleType, newcurl,
+    Handle_t newhandle = handlesys->CreateHandle(g_CurlHandleType, newcurl,
             pCtx->GetIdentity(), myself->GetIdentity(), NULL);
-    if (!handle)
+    if (!newhandle)
     {
         curl_easy_cleanup(newcurl);
         return BAD_HANDLE;
@@ -143,24 +147,23 @@ static cell_t smcurl_easy_getinfo(IPluginContext *pCtx, const cell_t *params)
     CURLcode code;
 
     int type = (CURLINFO_TYPEMASK & static_cast<int>(params[2]));
-    CURLINFO info = static_cast<CURLINFO>params[2];
+    CURLINFO info = static_cast<CURLINFO>(params[2]);
+    cell_t *addr;
     switch (type)
     {
         case CURLINFO_LONG:
-            cell_t *addr;
             pCtx->LocalToPhysAddr(params[3], &addr);
-            long n;
-            code = curl_easy_getinfo(curl, info, &n);
+            long l;
+            code = curl_easy_getinfo(curl, info, &l);
             if (CURLE_OK == code)
-                *addr = static_cast<cell_t>(n);
+                *addr = static_cast<cell_t>(l);
             break;
         case CURLINFO_DOUBLE:
-            cell_t *addr;
             pCtx->LocalToPhysAddr(params[3], &addr);
-            double n;
-            code = curl_easy_getinfo(curl, info, &n);
+            double d;
+            code = curl_easy_getinfo(curl, info, &d);
             if (CURLE_OK == code)
-                *addr = static_cast<cell_t>(n);
+                *addr = static_cast<cell_t>(static_cast<float>(d));
             break;
         case CURLINFO_STRING:
             if (params[0] < 4)
@@ -195,7 +198,7 @@ static cell_t smcurl_easy_recv(IPluginContext *pCtx, const cell_t *params)
     CURL_INIT();
 
     size_t buflen = static_cast<size_t>(params[3]);
-    char *buffer = malloc(buflen);
+    char *buffer = (char *)malloc(buflen);
     if (NULL == buffer)
         return CURLE_OUT_OF_MEMORY;
     size_t n = 0;
@@ -290,7 +293,7 @@ static cell_t smcurl_easy_unescape(IPluginContext *pCtx, const cell_t *params)
     int outlength;
     char *url;
     pCtx->LocalToString(params[2], &url);
-    char *buffer = curl_easy_unescape(curl, url, 0 &outlength);
+    char *buffer = curl_easy_unescape(curl, url, 0, &outlength);
     if (NULL == buffer)
         return 0;
 
