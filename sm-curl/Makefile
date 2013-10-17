@@ -102,8 +102,7 @@ ifeq "$(shell expr $(OS) \= Linux \& $(IS_CLANG) \= 0)" "1"
 	LDFLAGS += -static-libgcc
 endif
 
-LDFLAGS += -lm -ldl
-LDFLAGS += $(CURL_LIB)/libcurl.a -Wl,-Bsymbolic-functions -Wl,-z,relro -lidn -lgcrypt -llber $(CURL_LIB)/libldap.a $(CURL_LIB)/librt.a -lgssapi_krb5 $(CURL_LIB)/libz.a $(CURL_LIB)/libgnutls.a -lgcrypt $(CURL_LIB)/librtmp.a
+LDFLAGS += -lm -ldl $(shell curl-config --static-libs)
 
 OBJ_BIN := $(OBJECTS:%.cpp=$(BIN_DIR)/%.o)
 

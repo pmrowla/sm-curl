@@ -4,6 +4,11 @@ Sourcemod libcurl wrapper extension
 
 Some effort has been made to maintain minimal API compatibility with raydan's [cURL & Hash](https://forums.alliedmods.net/showthread.php?t=152216) extension, but full compatibility is not planned due to some significant design differences in the two implementations.
 
+Installing
+----------
+The system running sm-curl must have the following dependencies installed:
+* `GnuTLS`
+
 Building
 --------
 The following works in Ubuntu 12.04 i386
