@@ -31,6 +31,7 @@
 #include <ulib/chainhash_tpl.h>
 
 #include "smcurl.h"
+#include "curlopt.h"
 
 #define CURL_INIT()                                                         \
     Handle_t handle = static_cast<Handle_t>(params[1]);                     \
@@ -103,13 +104,23 @@ static cell_t smcurl_easy_init(IPluginContext *pCtx, const cell_t *params)
     if (NULL == curl)
         return BAD_HANDLE;
 
-    Handle_t handle = handlesys->CreateHandle(g_CurlHandleType, curl,
-            pCtx->GetIdentity(), myself->GetIdentity(), NULL);
-    if (!handle)
+    CurlData *data = (CurlData *)calloc(sizeof(CurlData), 1);
+    if (!data)
     {
         curl_easy_cleanup(curl);
         return BAD_HANDLE;
     }
+
+    Handle_t handle = handlesys->CreateHandle(g_CurlHandleType, curl,
+            pCtx->GetIdentity(), myself->GetIdentity(), NULL);
+    if (!handle)
+    {
+        free(data);
+        curl_easy_cleanup(curl);
+        return BAD_HANDLE;
+    }
+
+    curl_easy_setopt(curl, CURLOPT_PRIVATE, data);
 
     return handle;
 }
@@ -117,6 +128,10 @@ static cell_t smcurl_easy_init(IPluginContext *pCtx, const cell_t *params)
 static cell_t smcurl_easy_cleanup(IPluginContext *pCtx, const cell_t *params)
 {
     CURL_INIT();
+
+    CurlData *data;
+    curl_easy_getinfo(curl, CURLINFO_PRIVATE, &data);
+    free(data);
 
     curl_easy_cleanup(curl);
 
@@ -221,7 +236,12 @@ static cell_t smcurl_easy_reset(IPluginContext *pCtx, const cell_t *params)
 {
     CURL_INIT();
 
+    CurlData *data;
+    curl_easy_getinfo(curl, CURLINFO_PRIVATE, &data);
+    memset(data, 0, sizeof(CurlData));
+
     curl_easy_reset(curl);
+    curl_easy_setopt(curl, CURLOPT_PRIVATE, data);
 
     return 1;
 }
@@ -265,7 +285,10 @@ static cell_t smcurl_easy_setopt(IPluginContext *pCtx, const cell_t *params)
     }
     else if (option > CURLOPTTYPE_FUNCTIONPOINT)
     {
-        // TODO
+        IPluginFunction *func = pCtx->GetFunctionById(params[3]);
+        if (!func)
+            return pCtx->ThrowNativeError("Invalid function %x" , params[3]);
+        code = curlopt_set_func(curl, option, func);
     }
     else if (option > CURLOPTTYPE_OBJECTPOINT)
     {

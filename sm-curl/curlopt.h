@@ -26,10 +26,7 @@
  */
 
 #include <curl/curl.h>
-#include <ulib/chainhash_tpl.h>
 
-DEFINE_CHAINHASH(ul_ul, unsigned long, unsigned long,
-        chainhash_hashfn, chainhash_cmpfn);
+#include "smcurl.h"
 
-CURLcode curlopt_init(void);
-CURLcode curlopt_fini(void);
+CURLcode curlopt_set_func(CURL *curl, CURLoption option, IPluginFunction *func);

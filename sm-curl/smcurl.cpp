@@ -96,9 +96,6 @@ bool SmCurl::SDK_OnLoad(char *error, size_t maxlength, bool late)
         goto cleanup;
     }
 
-    if (CURLE_OK != curlopt_init())
-        result = false;
-
 cleanup:
     if (result)
     {
@@ -133,8 +130,6 @@ cleanup:
 void SmCurl::SDK_OnUnload()
 {
     IdentityToken_t *self = myself->GetIdentity();
-
-    curlopt_fini();
 
     if (g_CurlFileType)
     {

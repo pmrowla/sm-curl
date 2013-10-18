@@ -25,32 +25,44 @@
  * @author Peter "astroman" Rowlands <peter@pmrowla.com>
  */
 
+#include "smcurl.h"
 #include "curlopt.h"
 
-static chainhash_t(ul_ul) *g_curlHandles = NULL;
+static size_t smcurl_write_function(char *ptr, size_t size, size_t nmemb, void *userdata);
 
-CURLcode curlopt_init(void)
+CURLcode curlopt_set_func(CURL *curl, CURLoption option, IPluginFunction *func)
 {
-    g_curlHandles = chainhash_init(ul_ul, 10);
-    if (NULL == g_curlHandles)
-        return CURLE_OUT_OF_MEMORY;
+    CURLcode code = CURLE_OK;
 
-    return CURLE_OK;
-}
-
-CURLcode curlopt_fini(void)
-{
-    if (g_curlHandles)
+    switch (option)
     {
-        chainhash_itr_t(ul_ul) it = chainhash_begin(ul_ul, g_curlHandles);
-        while (!chainhash_end(it))
-        {
-            unsigned long n = chainhash_value(it);
-            chainhash_t(ul_ul) *ch = reinterpret_cast<chainhash_t(ul_ul) *>(n);
-            chainhash_destroy(ul_ul, ch);
-        }
-        chainhash_destroy(ul_ul, g_curlHandles);
+        case CURLOPT_WRITEFUNCTION:
+            code = curl_easy_setopt(curl, CURLOPT_WRITEDATA, curl);
+            if (CURLE_OK == code)
+                code = curl_easy_setopt(curl, option, &smcurl_write_function);
+            break;
     }
 
-    return CURLE_OK;
+    return code;
+}
+
+static size_t smcurl_write_function(char *ptr, size_t size, size_t nmemb, void *userdata)
+{
+    CURL *curl = static_cast<CURL *>(userdata);
+    CurlData *data;
+
+    curl_easy_getinfo(curl, CURLINFO_PRIVATE, &data);
+    cell_t result = 0;
+
+    if (data->write)
+    {
+        data->write->PushStringEx(ptr, size * (nmemb + 1), SM_PARAM_STRING_COPY|SM_PARAM_STRING_BINARY, 0);
+        data->write->PushCell(size);
+        data->write->PushCell(nmemb);
+        // TODO
+        //data->write->PushCell(data->write_data)
+        data->write->Execute(&result);
+    }
+
+    return static_cast<size_t>(result);
 }
